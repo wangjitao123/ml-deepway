@@ -1,0 +1,129 @@
+# 车辆故障预测系统配置文件
+
+# 22个传感器特征名称
+sensor_features:
+  - engine_rpm          # 发动机转速 (rpm)
+  - engine_temp         # 发动机温度 (°C)
+  - oil_pressure        # 机油压力 (psi)
+  - coolant_temp        # 冷却液温度 (°C)
+  - battery_voltage     # 电池电压 (V)
+  - battery_temp        # 电池温度 (°C)
+  - battery_soc         # 电池荷电状态 (%)
+  - motor_current       # 电机电流 (A)
+  - motor_temp          # 电机温度 (°C)
+  - brake_pressure      # 制动压力 (bar)
+  - tire_pressure_fl    # 左前轮胎压力 (psi)
+  - tire_pressure_fr    # 右前轮胎压力 (psi)
+  - tire_pressure_rl    # 左后轮胎压力 (psi)
+  - tire_pressure_rr    # 右后轮胎压力 (psi)
+  - vibration_level     # 振动等级 (m/s²)
+  - fuel_consumption    # 油耗 (L/100km)
+  - vehicle_speed       # 车速 (km/h)
+  - throttle_position   # 油门位置 (%)
+  - ambient_temp        # 环境温度 (°C)
+  - humidity            # 湿度 (%)
+  - road_gradient       # 道路坡度 (%)
+  - altitude            # 海拔高度 (m)
+
+# 车辆物理参数
+physics_params:
+  mass: 1500                  # 整车质量 (kg)
+  drag_coefficient: 0.3       # 空气阻力系数
+  rolling_resistance: 0.015   # 滚动阻力系数
+  frontal_area: 2.2           # 迎风面积 (m²)
+  gravity: 9.81               # 重力加速度 (m/s²)
+  air_density: 1.225          # 空气密度 (kg/m³)
+
+# 模型超参数
+model:
+  input_dim: 22         # 输入特征维度
+  hidden_dim: 128       # 隐藏层维度
+  num_layers: 2         # LSTM/Transformer层数
+  num_heads: 4          # 多头注意力头数
+  num_classes: 8        # 故障类别数 (0:正常 + 7种故障)
+  seq_len: 30           # 时序窗口长度
+  dropout: 0.2          # Dropout概率
+
+# 训练参数
+training:
+  batch_size: 32            # 批次大小
+  learning_rate: 0.001      # 学习率
+  epochs: 50                # 训练轮次
+  early_stopping_patience: 10  # 早停耐心值
+
+# 告警阈值配置 (概率阈值)
+alert_levels:
+  info: 0.3           # 信息级别
+  warning: 0.5        # 警告级别
+  critical: 0.7       # 严重级别
+  emergency: 0.85     # 紧急级别
+  shutdown: 0.95      # 停机级别
+
+# 传感器有效范围 (min, max)
+valid_ranges:
+  engine_rpm:
+    min: 0
+    max: 6000
+  engine_temp:
+    min: 60
+    max: 120
+  oil_pressure:
+    min: 15
+    max: 85
+  coolant_temp:
+    min: 60
+    max: 110
+  battery_voltage:
+    min: 10.5
+    max: 15.0
+  battery_temp:
+    min: -10
+    max: 55
+  battery_soc:
+    min: 0
+    max: 100
+  motor_current:
+    min: 0
+    max: 600
+  motor_temp:
+    min: 15
+    max: 90
+  brake_pressure:
+    min: 0
+    max: 160
+  tire_pressure_fl:
+    min: 22
+    max: 48
+  tire_pressure_fr:
+    min: 22
+    max: 48
+  tire_pressure_rl:
+    min: 22
+    max: 48
+  tire_pressure_rr:
+    min: 22
+    max: 48
+  vibration_level:
+    min: 0
+    max: 12
+  fuel_consumption:
+    min: 0
+    max: 25
+  vehicle_speed:
+    min: 0
+    max: 220
+  throttle_position:
+    min: 0
+    max: 100
+  ambient_temp:
+    min: -40
+    max: 65
+  humidity:
+    min: 0
+    max: 100
+  road_gradient:
+    min: -35
+    max: 35
+  altitude:
+    min: 0
+    max: 4500

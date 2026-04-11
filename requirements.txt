@@ -1,0 +1,19 @@
+# 车辆故障预测系统依赖包
+torch>=2.0.0
+numpy
+pandas
+scikit-learn
+matplotlib
+pyyaml
+fastapi
+uvicorn
+pydantic
+optuna
+python-can
+paho-mqtt
+obd
+influxdb-client
+onnx
+onnxruntime
+tensorboard
+scipy

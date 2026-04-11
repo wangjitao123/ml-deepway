@@ -1,0 +1,112 @@
+# 车辆故障预测系统 Docker Compose 配置
+# 包含API服务、InfluxDB时序数据库、MQTT消息代理、Grafana可视化
+
+version: "3.8"
+
+services:
+  # ── 故障预测API服务 ──
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: vehicle-fault-api
+    ports:
+      - "8000:8000"      # API端口映射
+    environment:
+      - PYTHONPATH=/app
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN:-my-super-secret-token}
+      - INFLUXDB_ORG=${INFLUXDB_ORG:-vehicle-org}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET:-vehicle-sensors}
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+    volumes:
+      - ../checkpoints:/app/checkpoints     # 模型检查点挂载
+      - ../evaluation_results:/app/evaluation_results
+    depends_on:
+      - influxdb
+      - mosquitto
+    restart: unless-stopped
+    networks:
+      - vehicle-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── InfluxDB 时序数据库 ──
+  influxdb:
+    image: influxdb:2.7
+    container_name: vehicle-influxdb
+    ports:
+      - "8086:8086"    # InfluxDB HTTP API端口
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_USERNAME:-admin}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_PASSWORD:-password123}
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_ORG:-vehicle-org}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET:-vehicle-sensors}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN:-my-super-secret-token}
+      - DOCKER_INFLUXDB_INIT_RETENTION=30d    # 数据保留30天
+    volumes:
+      - influxdb-data:/var/lib/influxdb2     # 数据持久化
+      - influxdb-config:/etc/influxdb2
+    restart: unless-stopped
+    networks:
+      - vehicle-net
+
+  # ── Eclipse Mosquitto MQTT消息代理 ──
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: vehicle-mosquitto
+    ports:
+      - "1883:1883"    # MQTT标准端口
+      - "9001:9001"    # MQTT WebSocket端口
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-logs:/mosquitto/log
+    command: >
+      sh -c "echo 'listener 1883\nallow_anonymous true\nlistener 9001\nprotocol websockets' > /mosquitto/config/mosquitto.conf && mosquitto -c /mosquitto/config/mosquitto.conf"
+    restart: unless-stopped
+    networks:
+      - vehicle-net
+
+  # ── Grafana 可视化平台 ──
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vehicle-grafana
+    ports:
+      - "3000:3000"    # Grafana Web界面端口
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+    volumes:
+      - grafana-data:/var/lib/grafana    # Grafana数据持久化
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+    networks:
+      - vehicle-net
+
+# ── 持久化卷定义 ──
+volumes:
+  influxdb-data:
+    driver: local
+  influxdb-config:
+    driver: local
+  mosquitto-data:
+    driver: local
+  mosquitto-logs:
+    driver: local
+  grafana-data:
+    driver: local
+
+# ── 网络定义 ──
+networks:
+  vehicle-net:
+    driver: bridge
+    name: vehicle-prediction-network
